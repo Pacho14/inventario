@@ -1,1 +1,57 @@
-<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Marcador ArUco · Casa de Oficios</title><style>body{font:16px system-ui;background:#f3f0e8;color:#27251f;max-width:720px;margin:8vh auto;padding:24px}h1{font:400 42px Georgia,serif}button{padding:14px 20px;background:#28614f;border:0;color:white;border-radius:4px;font-weight:700;cursor:pointer}a{color:#28614f}#marker{display:block;width:min(72vw,420px);margin:28px 0;border:12px solid white;box-shadow:0 0 0 1px #bbb}</style></head><body><p>CASA DE OFICIOS · MARCADOR DE INVENTARIO</p><h1>ArUco · ID 0</h1><p>Imprime este marcador en blanco y negro, sin recortarlo ni estirarlo. El borde blanco alrededor ayuda a detectarlo. Asócialo al Tapete de mota y apunta la cámara al cuadrado.</p><div id="marker"></div><button id="download">Descargar marcador SVG</button><p><a href="/">Volver al inventario</a></p><script src="https://cdn.jsdelivr.net/npm/js-aruco2@2.0.0/src/cv.js"></script><script src="https://cdn.jsdelivr.net/npm/js-aruco2@2.0.0/src/aruco.js"></script><script>const svg=new AR.Dictionary('ARUCO').generateSVG(0);document.querySelector('#marker').innerHTML=svg;document.querySelector('#download').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));a.download='aruco-id-0.svg';a.click();};</script></body></html>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3f0e8">
+    <title>Marcador ArUco · Casa de Oficios</title>
+    <style>
+      :root{font-family:system-ui,sans-serif;color:#27251f;background:#f3f0e8}body{max-width:720px;margin:7vh auto;padding:24px}h1{font:400 42px Georgia,serif;margin:.3em 0}p{line-height:1.6}button{padding:14px 20px;background:#28614f;border:0;color:white;border-radius:4px;font-weight:700;cursor:pointer}a{color:#28614f}#marker{display:block;width:min(72vw,420px);margin:28px 0;border:12px solid white;box-shadow:0 0 0 1px #bbb;background:#fff}#marker svg{display:block;width:100%;height:auto}#pieceName{font-weight:600}#error{color:#9b3729}
+    </style>
+  </head>
+  <body>
+    <p>CASA DE OFICIOS · MARCADOR DE INVENTARIO</p>
+    <h1 id="title">Marcador ArUco</h1>
+    <p id="description">Imprime el marcador en blanco y negro, sin recortarlo ni estirarlo. El borde blanco alrededor facilita su detección.</p>
+    <p>Pieza asociada: <span id="pieceName">Cargando…</span></p>
+    <div id="marker" aria-label="Código fiducial ArUco"></div>
+    <p id="error" role="alert"></p>
+    <button id="download" type="button">Descargar marcador SVG</button>
+    <p><a href="/">Volver al inventario</a></p>
+    <script src="https://cdn.jsdelivr.net/npm/js-aruco2@2.0.0/src/cv.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-aruco2@2.0.0/src/aruco.js"></script>
+    <script>
+      (async () => {
+        const params = new URLSearchParams(location.search);
+        const requestedId = Number.parseInt(params.get('id') || '0', 10);
+        const markerId = Number.isInteger(requestedId) && requestedId >= 0 ? requestedId : 0;
+        const title = document.querySelector('#title');
+        let svg;
+        try {
+          const response = await fetch('/data/inventory.json');
+          if (!response.ok) throw new Error('No se pudo consultar el inventario.');
+          const inventory = await response.json();
+          const piece = inventory.find((item) => (item.markerId ?? 0) === markerId);
+          if (!piece) throw new Error(`No hay una pieza asociada al marcador ArUco ${markerId}.`);
+          if (!window.AR?.Dictionary) throw new Error('No se pudo cargar el generador ArUco. Revisa la conexión a Internet.');
+          title.textContent = `ArUco · ID ${markerId}`;
+          document.querySelector('#pieceName').textContent = piece.name;
+          document.querySelector('#description').textContent = `Imprime este código fiducial para identificar ${piece.name}. No recortes el borde ni estires la imagen.`;
+          svg = new AR.Dictionary('ARUCO').generateSVG(markerId);
+          document.querySelector('#marker').innerHTML = svg;
+          document.querySelector('#download').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+            link.download = `aruco-id-${markerId}-${piece.id}.svg`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+          });
+        } catch (error) {
+          document.querySelector('#pieceName').textContent = 'Sin asociación';
+          document.querySelector('#error').textContent = error.message;
+          document.querySelector('#download').disabled = true;
+        }
+      })();
+    </script>
+  </body>
+</html>

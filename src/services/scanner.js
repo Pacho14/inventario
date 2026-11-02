@@ -7,7 +7,8 @@ export class Scanner {
     if (this.running) return;
     if (!window.isSecureContext) throw new Error('La cámara requiere HTTPS o localhost.');
     if (!navigator.mediaDevices?.getUserMedia) throw new Error('Este navegador no ofrece acceso a la cámara.');
-    this.piece ||= (await (await fetch('/data/inventory.json')).json())[0];
+    this.inventory ||= await (await fetch('/data/inventory.json')).json();
+    this.piece ||= this.inventory[0];
     if (!this.piece) throw new Error('Aún no hay piezas en el inventario.');
     if (!window.AR?.Detector || !window.POS?.Posit) throw new Error('No se pudo cargar el detector ArUco. Comprueba la conexión e inténtalo de nuevo.');
     this.onStatus('Iniciando cámara', 'Solicitando permiso de acceso');
@@ -27,10 +28,10 @@ export class Scanner {
     this.onStatus('Buscando marcador ArUco', 'Enfoca el marcador cuadrado dentro del marco'); this.bindGestures(); this.tick();
   }
   async loadModel(piece) {
-    this.disposeModel(); this.piece = piece;
+    this.disposeModel(); this.piece = piece; this.markerId = piece.markerId ?? 0;
     const gltf = await new GLTFLoader().loadAsync(piece.model);
     const asset = gltf.scene;
-    rotateColorTextures(asset, Math.PI / 2);
+    rotateColorTextures(asset, piece.textureRotation || 0);
     const bounds = new THREE.Box3().setFromObject(asset);
     const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
@@ -53,18 +54,29 @@ export class Scanner {
     if (!this.previewMode && this.video.readyState >= 2) {
       this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
       const markers = this.detector.detect(this.ctx.getImageData(0,0,this.canvas.width,this.canvas.height));
-      const marker = markers.find((item) => item.id === this.markerId);
+      const marker = markers.find((item) => this.inventory.some((piece) => (piece.markerId ?? 0) === item.id));
       if (marker) {
+        const piece = this.inventory.find((item) => (item.markerId ?? 0) === marker.id);
+        this.lastDetectedMarkerId = marker.id;
         const points = marker.corners.map((point) => ({ x: point.x-this.canvas.width/2, y: this.canvas.height/2-point.y })); const pose = this.posit.pose(points);
         if (pose?.bestRotation && pose?.bestTranslation) {
           const r = pose.bestRotation, t = pose.bestTranslation, m = new THREE.Matrix4().set(r[0][0],r[0][1],r[0][2],t[0]/1000,r[1][0],r[1][1],r[1][2],t[1]/1000,r[2][0],r[2][1],r[2][2],-t[2]/1000,0,0,0,1);
           this.anchor.matrixAutoUpdate = false; this.anchor.matrix.copy(m); this.anchor.visible = true;
-          if (!this.visible && this.model) { this.visible = true; this.enterPreview(); }
+          if (piece.id !== this.piece?.id || (!this.model && !this.loadingPieceId)) {
+            if (!this.loadingPieceId) {
+              this.loadingPieceId = piece.id;
+              this.onStatus('Cargando modelo', piece.name);
+              this.loadModel(piece).then(() => {
+                this.loadingPieceId = null;
+                if (this.running && this.lastDetectedMarkerId === (piece.markerId ?? 0) && !this.previewMode) { this.visible = true; this.enterPreview(); }
+              }).catch(() => { this.loadingPieceId = null; this.onError(`No se pudo cargar el modelo de ${piece.name}.`); });
+            }
+          } else if (!this.visible && this.model && !this.loadingPieceId) { this.visible = true; this.enterPreview(); }
         }
       } else if (this.visible) { this.visible = false; this.anchor.visible = false; this.onLost(this.piece); }
     }
     if (this.autoRotate && this.model) this.model.rotation.y += 0.002;
-    if (this.previewMode) this.anchor.position.y = Math.sin(performance.now() * 0.0014) * 0.018;
+    if (this.previewMode) this.anchor.position.y = (this.previewOffsetY || 0) + Math.sin(performance.now() * 0.0014) * 0.018;
     this.renderer.render(this.scene,this.camera); this.frame = requestAnimationFrame(() => this.tick());
   }
   enterPreview() {
@@ -74,7 +86,7 @@ export class Scanner {
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
     this.video.pause(); this.video.srcObject = null;
-    this.anchor.matrixAutoUpdate = true; this.anchor.position.set(0,0,0); this.anchor.quaternion.identity(); this.anchor.scale.setScalar(1); this.anchor.visible = true;
+    this.anchor.matrixAutoUpdate = true; this.previewOffsetY = window.matchMedia?.('(pointer: coarse) and (orientation: portrait)').matches ? 0.015 : 0; this.anchor.position.set(0,this.previewOffsetY,0); this.anchor.quaternion.identity(); this.anchor.scale.setScalar(1); this.anchor.visible = true;
     this.camera.position.set(0,0,0.55); this.camera.lookAt(0,0,0);
     this.onFound(this.piece);
   }

@@ -52,3 +52,6 @@
 
 @media (pointer:coarse){.scanner.piece-preview:has(.tech-sheet.collapsed.visible) .ar-controls{bottom:calc(68px + env(safe-area-inset-bottom) + 26px)}.scanner.piece-preview .scanner-hint.found{display:none}}
 @media (pointer:coarse) and (max-width:420px){.ar-controls{gap:2px;padding:5px}.ar-controls button{width:31px;height:31px}.ar-controls span{font-size:6px;padding:0 2px}}
+
+.sheet-intro.with-reference{display:grid;grid-template-columns:84px minmax(0,1fr);gap:13px;align-items:start;margin-bottom:19px}.sheet-intro .sheet-description{margin:0}.sheet-reference{width:84px;height:84px;object-fit:cover;border:1px solid var(--line);background:#e8e3d8}.detail-list strong a{color:var(--green);text-decoration:underline;text-underline-offset:3px}
+@media(max-width:800px){.sheet-intro.with-reference{grid-template-columns:76px minmax(0,1fr);gap:11px}.sheet-reference{width:76px;height:76px}}
