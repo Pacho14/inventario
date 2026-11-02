@@ -1,0 +1,21 @@
+[
+  {
+    "id": "tapete-mota",
+    "name": "Tapete de mota",
+    "category": "Tejido artesanal",
+    "description": "Pieza artesanal registrada en el inventario digital. La ficha se puede completar con información verificada del taller.",
+    "target": "/assets/targets/img-target.jpg",
+    "targetIndex": 0,
+    "markerId": 0,
+    "model": "/assets/models/motas1.glb",
+    "scale": 0.24,
+    "previewRotation": [-1.5707963, 0, 0],
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "referenceImage": "/assets/images/img-target.jpg",
+    "materials": {"summary": "Información pendiente de completar con el taller.", "items": ["Por documentar"], "origin": "Por confirmar"},
+    "craft": {"summary": "Técnica y proceso por documentar con el artesano.", "tools": "Por confirmar", "time": "Por confirmar"},
+    "artisan": {"name": "Información por confirmar", "workshop": "", "location": "Por confirmar", "contact": "", "website": ""},
+    "gallery": []
+  }
+]
