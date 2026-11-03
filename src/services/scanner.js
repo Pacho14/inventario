@@ -11,7 +11,7 @@ export class Scanner {
     this.piece ||= this.inventory[0];
     if (!this.piece) throw new Error('Aún no hay piezas en el inventario.');
     if (!window.AR?.Detector || !window.POS?.Posit) throw new Error('No se pudo cargar el detector ArUco. Comprueba la conexión e inténtalo de nuevo.');
-    this.onStatus('Iniciando cámara', 'Solicitando permiso de acceso');
+    this.onStatus('Busca la etiqueta correspondiente a la pieza', 'Permite el acceso a la cámara para escanear.');
     const video = document.createElement('video'); video.autoplay = true; video.muted = true; video.playsInline = true; video.className = 'aruco-video';
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
     video.srcObject = this.stream; this.video = video; const host = document.querySelector('#camera'); host.replaceChildren(video); await video.play();
@@ -25,7 +25,7 @@ export class Scanner {
     window.addEventListener('resize', this.resizeRenderer);
     this.anchor = new THREE.Group(); this.scene.add(this.anchor); this.running = true; this.visible = false;
     try { await this.loadModel(this.piece); } catch (error) { this.onError('No se pudo cargar el modelo 3D.'); }
-    this.onStatus('Buscando marcador ArUco', 'Enfoca el marcador cuadrado dentro del marco'); this.bindGestures(); this.tick();
+    this.onStatus('Busca la etiqueta correspondiente a la pieza', 'Escanéala con la cámara de tu dispositivo.'); this.bindGestures(); this.tick();
   }
   async loadModel(piece) {
     this.disposeModel(); this.piece = piece; this.markerId = piece.markerId ?? 0;
